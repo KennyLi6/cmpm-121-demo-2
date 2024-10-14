@@ -52,6 +52,7 @@ canvas.addEventListener("mouseleave", stopDrawing);
 // if we don't stop drawing when cursor leaves canvas, line will snap to next 
 // spot user enters canvas from
 
+// div is only used to get the button to appear under the canvas
 app.append(document.createElement("div"));
 
 const clear_button = document.createElement("button");
