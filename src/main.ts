@@ -19,5 +19,6 @@ if (!context) { //check if context of canvas actually exists
     console.error("Context not found!");
 }
 
-context.fillStyle = '#34BAEB';
+const canvasColor = '#34BAEB'
+context.fillStyle = canvasColor;
 context.fillRect(0, 0, canvasSize, canvasSize);
