@@ -93,3 +93,8 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+canvas {
+  border: 5px solid black;
+  border-radius: 10px;
+}
