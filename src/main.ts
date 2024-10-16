@@ -47,8 +47,6 @@ function trigger_drawing_changed() {
     canvas.dispatchEvent(new Event('drawing-changed'));
 }
 
-canvas.addEventListener("drawing-changed", drawLinesOnCanvas); 
-
 function drawLinesOnCanvas() {
     context.fillRect(0, 0, canvas_size, canvas_size);
     
@@ -62,7 +60,7 @@ function drawLinesOnCanvas() {
         context.stroke();
         context.closePath();
     }
-    
+
     if (currently_drawing) { //make sure to draw what is currently being drawn
         context.beginPath();
         context.moveTo(current_points[0].x, current_points[0].y);
@@ -77,11 +75,12 @@ function drawLinesOnCanvas() {
 
 function stopDrawing() {
     currently_drawing = false;
-    if (current_points.length <= 0) return;
+    if (current_points.length <= 0) return; //check so that not push when mouse leaves canvas
     drawing_points.push(current_points);
     current_points = [];
 }
 
+canvas.addEventListener("drawing-changed", drawLinesOnCanvas); 
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", drawLine)
 canvas.addEventListener("mouseup", stopDrawing);
