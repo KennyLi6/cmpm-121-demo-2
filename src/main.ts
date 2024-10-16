@@ -25,6 +25,10 @@ context.fillRect(0, 0, canvas_size, canvas_size);
 
 let currently_drawing = false;
 
+interface Point { x: number;  y: number}
+const drawing_points: Point[][] = [];
+let current_points: Point[] = [];
+
 function startDrawing(event: MouseEvent) {
     currently_drawing = true;
     drawLine(event);
@@ -35,14 +39,47 @@ function drawLine(event: MouseEvent) {
     const canvas_bounds = canvas.getBoundingClientRect();
     const mouseX = event.clientX - canvas_bounds.left;
     const mouseY = event.clientY - canvas_bounds.top;
+    current_points.push({ x:mouseX, y:mouseY });
+    trigger_drawing_changed();
+}
 
-    context.lineTo(mouseX, mouseY);
-    context.stroke();
+function trigger_drawing_changed() {
+    canvas.dispatchEvent(new Event('drawing-changed'));
+}
+
+canvas.addEventListener("drawing-changed", drawLinesOnCanvas); 
+
+function drawLinesOnCanvas() {
+    context.fillRect(0, 0, canvas_size, canvas_size);
+    
+    for (const session of drawing_points) {
+        context.beginPath();
+        context.moveTo(session[0].x, session[0].y);
+        for (let i = 1; i < session.length; i++) {
+            const point = session[i];
+            context.lineTo(point.x, point.y);
+        }
+        context.stroke();
+        context.closePath();
+    }
+    
+    if (currently_drawing) { //make sure to draw what is currently being drawn
+        context.beginPath();
+        context.moveTo(current_points[0].x, current_points[0].y);
+        for (let i = 1; i < current_points.length; i++) {
+            const point = current_points[i];
+            context.lineTo(point.x, point.y);
+        }
+        context.stroke();
+        context.closePath();
+    }
 }
 
 function stopDrawing() {
     currently_drawing = false;
-    context.beginPath();
+    if (current_points.length <= 0) return;
+    drawing_points.push(current_points);
+    current_points = [];
 }
 
 canvas.addEventListener("mousedown", startDrawing);
