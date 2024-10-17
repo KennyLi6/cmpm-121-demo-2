@@ -25,7 +25,40 @@ context.fillRect(0, 0, canvas_size, canvas_size);
 
 let currently_drawing = false;
 
-interface Point { x: number;  y: number}
+interface Point {
+    x: number;
+    y: number;
+    display(context: CanvasRenderingContext2D): void;
+    drag(x: number, y: number): void;
+}
+
+function createPoint(x: number, y: number): Point {
+    return {
+        x,
+        y,
+        display(context) {
+            context.lineTo(this.x, this.y);
+        },
+        drag(newX: number, newY: number) {
+            this.x = newX;
+            this.y = newY;
+        }
+    }
+}
+
+function drag(mouse: MouseEvent) {
+    if (currently_drawing) return;
+
+    const canvasBounds = canvas.getBoundingClientRect();
+    const newX = mouse.clientX - canvasBounds.left;
+    const newY = mouse.clientY - canvasBounds.top;
+
+    current_points.pop();
+    current_points.push(createPoint(newX, newY));
+
+    trigger_drawing_changed();
+}
+
 let drawing_points: Point[][] = [];
 let current_points: Point[] = [];
 
@@ -40,7 +73,7 @@ function drawLine(event: MouseEvent) {
     const canvas_bounds = canvas.getBoundingClientRect();
     const mouseX = event.clientX - canvas_bounds.left;
     const mouseY = event.clientY - canvas_bounds.top;
-    current_points.push({ x:mouseX, y:mouseY });
+    current_points.push(createPoint(mouseX, mouseY));
     trigger_drawing_changed();
 }
 
@@ -56,7 +89,7 @@ function drawLinesOnCanvas() {
         context.moveTo(session[0].x, session[0].y);
         for (let i = 1; i < session.length; i++) {
             const point = session[i];
-            context.lineTo(point.x, point.y);
+            point.display(context);
         }
         context.stroke();
         context.closePath();
@@ -67,7 +100,7 @@ function drawLinesOnCanvas() {
         context.moveTo(current_points[0].x, current_points[0].y);
         for (let i = 1; i < current_points.length; i++) {
             const point = current_points[i];
-            context.lineTo(point.x, point.y);
+            point.display(context);
         }
         context.stroke();
         context.closePath();
@@ -100,6 +133,7 @@ app.append(clear_button);
 function clearCanvas() {
     context.fillRect(0, 0, canvas_size, canvas_size);
     drawing_points = [];
+    redo_stack = [];
 }
 
 clear_button.addEventListener("click", clearCanvas);
