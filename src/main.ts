@@ -32,6 +32,11 @@ interface Point {
     drag(x: number, y: number): void;
 }
 
+interface DrawingSession {
+    points: Point[];
+    lineWidth: number;
+}
+
 interface ButtonConfig {
     name: string;
     text: string;
@@ -53,6 +58,16 @@ const buttonsToMake: ButtonConfig[] = [
         name: "redo_button",
         text: "Redo",
         action: redo_command
+    },
+    {
+        name: "thin_button",
+        text: "Thin",
+        action: createThicknessChange(1)
+    },
+    {
+        name: "thick_button",
+        text: "Thick",
+        action: createThicknessChange(5)
     },
 ];
 
@@ -93,7 +108,7 @@ function drag(mouse: MouseEvent) {
     trigger_drawing_changed();
 }
 
-let drawing_points: Point[][] = [];
+let drawing_points: DrawingSession[] = [];
 let current_points: Point[] = [];
 
 function startDrawing(event: MouseEvent) {
@@ -119,14 +134,17 @@ function drawLinesOnCanvas() {
     context.fillRect(0, 0, canvas_size, canvas_size);
     
     for (const session of drawing_points) {
+        context.save()
+        context.lineWidth = session.lineWidth;
         context.beginPath();
-        context.moveTo(session[0].x, session[0].y);
-        for (let i = 1; i < session.length; i++) {
-            const point = session[i];
+        context.moveTo(session.points[0].x, session.points[0].y);
+        for (let i = 1; i < session.points.length; i++) {
+            const point = session.points[i];
             point.display(context);
         }
         context.stroke();
         context.closePath();
+        context.restore();
     }
 
     if (currently_drawing) { //make sure to draw what is currently being drawn
@@ -144,7 +162,10 @@ function drawLinesOnCanvas() {
 function stopDrawing() {
     currently_drawing = false;
     if (current_points.length <= 0) return; //check so that not push when mouse leaves canvas
-    drawing_points.push(current_points);
+    drawing_points.push({
+        points: current_points,
+        lineWidth: context.lineWidth
+    });
     current_points = [];
 }
 
@@ -165,14 +186,29 @@ function clearCanvas() {
 
 function undo_command() {
     if (drawing_points.length <= 0) return;
-    redo_stack.push(drawing_points.pop()!);
+    const lastSession = drawing_points.pop();
+    if (lastSession) {
+        redo_stack.push(lastSession);
+    }
     trigger_drawing_changed();
 }
 
-let redo_stack: Point[][] = [];
+let redo_stack: DrawingSession[] = [];
 
 function redo_command() {
     if (redo_stack.length <= 0) return;
-    drawing_points.push(redo_stack.pop()!);
+    const lastSession = redo_stack.pop();
+    if (lastSession) {
+        drawing_points.push(lastSession);
+    }
+    
     trigger_drawing_changed();
+}
+
+function thicknessChange(value: number) {
+    context.lineWidth = value;
+}
+
+function createThicknessChange(value: number): () => void {
+    return () => thicknessChange(value);
 }
