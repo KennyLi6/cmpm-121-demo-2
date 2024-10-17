@@ -32,6 +32,40 @@ interface Point {
     drag(x: number, y: number): void;
 }
 
+interface ButtonConfig {
+    name: string;
+    text: string;
+    action: () => void;
+}
+
+const buttonsToMake: ButtonConfig[] = [
+    {
+        name: "clear_button",
+        text: "Clear canvas",
+        action: clearCanvas
+    },
+    {
+        name: "undo_button",
+        text: "Undo",
+        action: undo_command
+    },
+    {
+        name: "redo_button",
+        text: "Redo",
+        action: redo_command
+    },
+];
+
+// div is only used to get the button to appear under the canvas
+app.append(document.createElement("div"));
+
+for (let i = 0; i < buttonsToMake.length; i++) {
+    const button = document.createElement("button");
+    button.innerHTML = buttonsToMake[i].text;
+    button.addEventListener("click", buttonsToMake[i].action);
+    app.append(button);
+}
+
 function createPoint(x: number, y: number): Point {
     return {
         x,
@@ -122,13 +156,6 @@ canvas.addEventListener("mouseleave", stopDrawing);
 // if we don't stop drawing when cursor leaves canvas, line will snap to next 
 // spot user enters canvas from
 
-// div is only used to get the button to appear under the canvas
-app.append(document.createElement("div"));
-
-const clear_button = document.createElement("button");
-clear_button.innerHTML = "Clear canvas"
-app.append(clear_button);
-
 // might not need to have a function if user can't clear in other ways
 function clearCanvas() {
     context.fillRect(0, 0, canvas_size, canvas_size);
@@ -136,23 +163,11 @@ function clearCanvas() {
     redo_stack = [];
 }
 
-clear_button.addEventListener("click", clearCanvas);
-
-const undo_button = document.createElement("button");
-undo_button.innerHTML = "Undo"
-app.append(undo_button);
-
 function undo_command() {
     if (drawing_points.length <= 0) return;
     redo_stack.push(drawing_points.pop()!);
     trigger_drawing_changed();
 }
-
-undo_button.addEventListener("click", undo_command);
-
-const redo_button = document.createElement('button');
-redo_button.innerHTML = "Redo"
-app.append(redo_button);
 
 let redo_stack: Point[][] = [];
 
@@ -161,5 +176,3 @@ function redo_command() {
     drawing_points.push(redo_stack.pop()!);
     trigger_drawing_changed();
 }
-
-redo_button.addEventListener("click", redo_command);
