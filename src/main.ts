@@ -96,16 +96,32 @@ const buttonsToMake: ButtonConfig[] = [
     text: "🤕",
     action: createCursorChange("🤕"),
   },
+  {
+    name: "custom_emoji_button",
+    text: "+",
+    action: createCustomEmoji,
+  },
 ];
 
 // div is only used to get the button to appear under the canvas
 app.append(document.createElement("div"));
 
-for (let i = 0; i < buttonsToMake.length; i++) {
-  const button = document.createElement("button");
-  button.innerHTML = buttonsToMake[i].text;
-  button.addEventListener("click", buttonsToMake[i].action);
-  app.append(button);
+const custom_attribute = "custom_button";
+
+createButtons(buttonsToMake, app, custom_attribute);
+
+function createButtons(
+  buttonConfigs: ButtonConfig[],
+  container: HTMLElement,
+  attribute: string
+): void {
+  for (let i = 0; i < buttonConfigs.length; i++) {
+    const button = document.createElement("button");
+    button.innerHTML = buttonConfigs[i].text;
+    button.addEventListener("click", buttonConfigs[i].action);
+    button.setAttribute("data-custom-button", attribute);
+    container.append(button);
+  }
 }
 
 function createPoint(x: number, y: number): Point {
@@ -345,4 +361,31 @@ function createCursorChange(style: string): () => void {
 function changeCursorToDot() {
   tool_moved.detail.cursorStyle = ".";
   triggerToolMoved();
+}
+
+function clearCreatedButtons(
+  container: HTMLElement,
+  dataAttribute: string
+): void {
+  const buttons = container.querySelectorAll(
+    `button[data-custom-button='${dataAttribute}']`
+  );
+  buttons.forEach((button) => button.remove());
+}
+
+function createCustomEmoji() {
+  const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})$/u;
+  let emoji: string | null = null;
+  while (!emoji || !emojiRegex.test(emoji)) {
+    emoji = prompt("Enter an emoji:");
+  }
+  const custom_emoji_button = buttonsToMake.pop() as ButtonConfig;
+  buttonsToMake.push({
+    name: "custom_emoji",
+    text: emoji,
+    action: createCursorChange(emoji),
+  });
+  buttonsToMake.push(custom_emoji_button);
+  clearCreatedButtons(app, custom_attribute);
+  createButtons(buttonsToMake, app, custom_attribute);
 }
