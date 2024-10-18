@@ -33,6 +33,17 @@ interface Point {
   drag(x: number, y: number): void;
 }
 
+interface DrawingAction {
+  type: "line" | "emoji";
+  data: DrawingSession | EmojiPlacement;
+}
+
+interface EmojiPlacement {
+  x: number;
+  y: number;
+  emoji: string;
+}
+
 interface DrawingSession {
   points: Point[];
   lineWidth: number;
@@ -69,6 +80,21 @@ const buttonsToMake: ButtonConfig[] = [
     name: "thick_button",
     text: "Thick",
     action: createThicknessChange(5),
+  },
+  {
+    name: "emoji1_button",
+    text: "🥴",
+    action: createCursorChange("🥴"),
+  },
+  {
+    name: "emoji2_button",
+    text: "🥵",
+    action: createCursorChange("🥵"),
+  },
+  {
+    name: "emoji3_button",
+    text: "🤕",
+    action: createCursorChange("🤕"),
   },
 ];
 
@@ -109,13 +135,38 @@ function drag(mouse: MouseEvent) {
   trigger_drawing_changed();
 }
 
-let drawing_points: DrawingSession[] = [];
+let drawing_points: DrawingAction[] = [];
 let current_points: Point[] = [];
 
+let currentTool: "drawing" | "emoji" = "drawing";
+let currentEmoji: string | null = null;
+
 function startDrawing(event: MouseEvent) {
+  if (currentTool !== "drawing") return;
   currently_drawing = true;
   redo_stack = [];
   drawLine(event);
+}
+
+interface EmojiPlacement {
+  x: number;
+  y: number;
+  emoji: string;
+}
+
+function placeEmoji(event: MouseEvent) {
+  if (currentTool !== "emoji" || !currentEmoji) return;
+
+  const canvasBounds = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - canvasBounds.left;
+  const mouseY = event.clientY - canvasBounds.top;
+
+  drawing_points.push({
+    type: "emoji",
+    data: { x: mouseX, y: mouseY, emoji: currentEmoji },
+  });
+  redo_stack = [];
+  trigger_drawing_changed();
 }
 
 function drawLine(event: MouseEvent) {
@@ -135,7 +186,13 @@ function drawLinesOnCanvas() {
   context.fillRect(0, 0, canvas_size, canvas_size);
 
   for (const session of drawing_points) {
-    drawSession(session, context);
+    if (session.type === "line") {
+      drawSession(session.data as DrawingSession, context);
+    } else if (session.type === "emoji") {
+      const emoji = session.data as EmojiPlacement;
+      context.font = `25px Arial`;
+      context.fillText(emoji.emoji, emoji.x, emoji.y);
+    }
   }
 
   //make sure to draw what is currently being drawn
@@ -173,14 +230,23 @@ function stopDrawing() {
   currently_drawing = false;
   if (current_points.length <= 0) return; //check so that not push when mouse leaves canvas
   drawing_points.push({
-    points: current_points,
-    lineWidth: context.lineWidth,
+    type: "line",
+    data: {
+      points: current_points,
+      lineWidth: context.lineWidth,
+    },
   });
   current_points = [];
 }
 
 canvas.addEventListener("drawing-changed", drawLinesOnCanvas);
-canvas.addEventListener("mousedown", startDrawing);
+canvas.addEventListener("mousedown", (event) => {
+  if (currentTool === "drawing") {
+    startDrawing(event);
+  } else if (currentTool === "emoji") {
+    placeEmoji(event);
+  }
+});
 canvas.addEventListener("mousemove", drawLine);
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseleave", stopDrawing);
@@ -203,7 +269,7 @@ function undo_command() {
   trigger_drawing_changed();
 }
 
-let redo_stack: DrawingSession[] = [];
+let redo_stack: DrawingAction[] = [];
 
 function redo_command() {
   if (redo_stack.length <= 0) return;
@@ -216,6 +282,11 @@ function redo_command() {
 
 function thicknessChange(value: number) {
   context.lineWidth = value;
+  currentTool = "drawing"; // Reset to drawing mode
+  currentEmoji = null; // Clear current emoji
+
+  // Revert to drawing cursor
+  changeCursorToDot();
   trigger_tool_moved();
 }
 
@@ -259,3 +330,19 @@ function revertCursorStyle() {
 canvas.addEventListener("mouseleave", revertCursorStyle);
 canvas.addEventListener("mouseenter", trigger_tool_moved);
 document.addEventListener("tool-moved", changeToolStyle);
+
+function changeCursorStyle(style: string) {
+  tool_moved.detail.cursorStyle = style;
+  currentTool = "emoji";
+  currentEmoji = style;
+  trigger_tool_moved();
+}
+
+function createCursorChange(style: string): () => void {
+  return () => changeCursorStyle(style);
+}
+
+function changeCursorToDot() {
+  tool_moved.detail.cursorStyle = ".";
+  trigger_tool_moved();
+}
