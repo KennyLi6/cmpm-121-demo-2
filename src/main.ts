@@ -64,12 +64,12 @@ const buttonsToMake: ButtonConfig[] = [
   {
     name: "undo_button",
     text: "Undo",
-    action: undo_command,
+    action: undoCommand,
   },
   {
     name: "redo_button",
     text: "Redo",
-    action: redo_command,
+    action: redoCommand,
   },
   {
     name: "thin_button",
@@ -132,7 +132,7 @@ function drag(mouse: MouseEvent) {
   current_points.pop();
   current_points.push(createPoint(newX, newY));
 
-  trigger_drawing_changed();
+  triggerDrawingChanged();
 }
 
 let drawing_points: DrawingAction[] = [];
@@ -166,7 +166,7 @@ function placeEmoji(event: MouseEvent) {
     data: { x: mouseX, y: mouseY, emoji: currentEmoji },
   });
   redo_stack = [];
-  trigger_drawing_changed();
+  triggerDrawingChanged();
 }
 
 function drawLine(event: MouseEvent) {
@@ -175,10 +175,10 @@ function drawLine(event: MouseEvent) {
   const mouseX = event.clientX - canvas_bounds.left;
   const mouseY = event.clientY - canvas_bounds.top;
   current_points.push(createPoint(mouseX, mouseY));
-  trigger_drawing_changed();
+  triggerDrawingChanged();
 }
 
-function trigger_drawing_changed() {
+function triggerDrawingChanged() {
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
@@ -260,24 +260,24 @@ function clearCanvas() {
   redo_stack = [];
 }
 
-function undo_command() {
+function undoCommand() {
   if (drawing_points.length <= 0) return;
   const lastSession = drawing_points.pop();
   if (lastSession) {
     redo_stack.push(lastSession);
   }
-  trigger_drawing_changed();
+  triggerDrawingChanged();
 }
 
 let redo_stack: DrawingAction[] = [];
 
-function redo_command() {
+function redoCommand() {
   if (redo_stack.length <= 0) return;
   const lastSession = redo_stack.pop();
   if (lastSession) {
     drawing_points.push(lastSession);
   }
-  trigger_drawing_changed();
+  triggerDrawingChanged();
 }
 
 function thicknessChange(value: number) {
@@ -287,7 +287,7 @@ function thicknessChange(value: number) {
 
   // Revert to drawing cursor
   changeCursorToDot();
-  trigger_tool_moved();
+  triggerToolMoved();
 }
 
 function createThicknessChange(value: number): () => void {
@@ -300,7 +300,7 @@ const tool_moved = new CustomEvent("tool-moved", {
   },
 });
 
-function trigger_tool_moved() {
+function triggerToolMoved() {
   document.dispatchEvent(tool_moved);
 }
 
@@ -313,7 +313,7 @@ function changeToolStyle(event: Event) {
     const mouseX = moveEvent.clientX - canvasBounds.left;
     const mouseY = moveEvent.clientY - canvasBounds.top;
     context.save();
-    trigger_drawing_changed();
+    triggerDrawingChanged();
     document.body.style.cursor = "none";
     context.font = `25px Arial`;
     context.fillStyle = "black";
@@ -324,18 +324,18 @@ function changeToolStyle(event: Event) {
 
 function revertCursorStyle() {
   document.body.style.cursor = "default";
-  trigger_drawing_changed();
+  triggerDrawingChanged();
 }
 
 canvas.addEventListener("mouseleave", revertCursorStyle);
-canvas.addEventListener("mouseenter", trigger_tool_moved);
+canvas.addEventListener("mouseenter", triggerToolMoved);
 document.addEventListener("tool-moved", changeToolStyle);
 
 function changeCursorStyle(style: string) {
   tool_moved.detail.cursorStyle = style;
   currentTool = "emoji";
   currentEmoji = style;
-  trigger_tool_moved();
+  triggerToolMoved();
 }
 
 function createCursorChange(style: string): () => void {
@@ -344,5 +344,5 @@ function createCursorChange(style: string): () => void {
 
 function changeCursorToDot() {
   tool_moved.detail.cursorStyle = ".";
-  trigger_tool_moved();
+  triggerToolMoved();
 }
