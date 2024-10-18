@@ -216,8 +216,46 @@ function redo_command() {
 
 function thicknessChange(value: number) {
   context.lineWidth = value;
+  trigger_tool_moved();
 }
 
 function createThicknessChange(value: number): () => void {
   return () => thicknessChange(value);
 }
+
+const tool_moved = new CustomEvent("tool-moved", {
+  detail: {
+    cursorStyle: ".",
+  },
+});
+
+function trigger_tool_moved() {
+  document.dispatchEvent(tool_moved);
+}
+
+function changeToolStyle(event: Event) {
+  const customEvent = event as CustomEvent<{ cursorStyle: string }>;
+  const styleDetail = customEvent.detail;
+
+  canvas.addEventListener("mousemove", (moveEvent) => {
+    const canvasBounds = canvas.getBoundingClientRect();
+    const mouseX = moveEvent.clientX - canvasBounds.left;
+    const mouseY = moveEvent.clientY - canvasBounds.top;
+    context.save();
+    trigger_drawing_changed();
+    document.body.style.cursor = "none";
+    context.font = `25px Arial`;
+    context.fillStyle = "black";
+    context.fillText(styleDetail.cursorStyle, mouseX, mouseY);
+    context.restore();
+  });
+}
+
+function revertCursorStyle() {
+  document.body.style.cursor = "default";
+  trigger_drawing_changed();
+}
+
+canvas.addEventListener("mouseleave", revertCursorStyle);
+canvas.addEventListener("mouseenter", trigger_tool_moved);
+document.addEventListener("tool-moved", changeToolStyle);
