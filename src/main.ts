@@ -57,6 +57,11 @@ interface ButtonConfig {
 
 const buttonsToMake: ButtonConfig[] = [
   {
+    name: "export_button",
+    text: "Export",
+    action: exportCanvas,
+  },
+  {
     name: "clear_button",
     text: "Clear canvas",
     action: clearCanvas,
@@ -148,7 +153,7 @@ function drag(mouse: MouseEvent) {
   current_points.pop();
   current_points.push(createPoint(newX, newY));
 
-  triggerDrawingChanged();
+  triggerDrawingChanged(canvas);
 }
 
 let drawing_points: DrawingAction[] = [];
@@ -161,7 +166,7 @@ function startDrawing(event: MouseEvent) {
   if (currentTool !== "drawing") return;
   currently_drawing = true;
   redo_stack = [];
-  drawLine(event);
+  drawLine(event, canvas);
 }
 
 interface EmojiPlacement {
@@ -182,24 +187,34 @@ function placeEmoji(event: MouseEvent) {
     data: { x: mouseX, y: mouseY, emoji: currentEmoji },
   });
   redo_stack = [];
-  triggerDrawingChanged();
+  triggerDrawingChanged(canvas);
 }
 
-function drawLine(event: MouseEvent) {
+function drawLine(event: MouseEvent, canvas: HTMLCanvasElement) {
   if (!currently_drawing) return;
   const canvas_bounds = canvas.getBoundingClientRect();
   const mouseX = event.clientX - canvas_bounds.left;
   const mouseY = event.clientY - canvas_bounds.top;
   current_points.push(createPoint(mouseX, mouseY));
-  triggerDrawingChanged();
+  triggerDrawingChanged(canvas);
 }
 
-function triggerDrawingChanged() {
+function triggerDrawingChanged(canvas: HTMLCanvasElement) {
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
-function drawLinesOnCanvas() {
-  context.fillRect(0, 0, canvas_size, canvas_size);
+function createDrawLinesOnCanvas(
+  context: CanvasRenderingContext2D,
+  canvasSize: number
+): () => void {
+  return () => drawLinesOnCanvas(context, canvasSize);
+}
+
+function drawLinesOnCanvas(
+  context: CanvasRenderingContext2D,
+  canvasSize: number
+) {
+  context.fillRect(0, 0, canvasSize, canvasSize);
 
   for (const session of drawing_points) {
     if (session.type === "line") {
@@ -255,7 +270,10 @@ function stopDrawing() {
   current_points = [];
 }
 
-canvas.addEventListener("drawing-changed", drawLinesOnCanvas);
+canvas.addEventListener(
+  "drawing-changed",
+  createDrawLinesOnCanvas(context, canvas_size)
+);
 canvas.addEventListener("mousedown", (event) => {
   if (currentTool === "drawing") {
     startDrawing(event);
@@ -263,7 +281,9 @@ canvas.addEventListener("mousedown", (event) => {
     placeEmoji(event);
   }
 });
-canvas.addEventListener("mousemove", drawLine);
+canvas.addEventListener("mousemove", (event: MouseEvent) =>
+  drawLine(event, canvas)
+);
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseleave", stopDrawing);
 // if we don't stop drawing when cursor leaves canvas, line will snap to next
@@ -282,7 +302,7 @@ function undoCommand() {
   if (lastSession) {
     redo_stack.push(lastSession);
   }
-  triggerDrawingChanged();
+  triggerDrawingChanged(canvas);
 }
 
 let redo_stack: DrawingAction[] = [];
@@ -293,7 +313,7 @@ function redoCommand() {
   if (lastSession) {
     drawing_points.push(lastSession);
   }
-  triggerDrawingChanged();
+  triggerDrawingChanged(canvas);
 }
 
 function thicknessChange(value: number) {
@@ -329,7 +349,7 @@ function changeToolStyle(event: Event) {
     const mouseX = moveEvent.clientX - canvasBounds.left;
     const mouseY = moveEvent.clientY - canvasBounds.top;
     context.save();
-    triggerDrawingChanged();
+    triggerDrawingChanged(canvas);
     document.body.style.cursor = "none";
     context.font = `25px Arial`;
     context.fillStyle = "black";
@@ -340,7 +360,7 @@ function changeToolStyle(event: Event) {
 
 function revertCursorStyle() {
   document.body.style.cursor = "default";
-  triggerDrawingChanged();
+  triggerDrawingChanged(canvas);
 }
 
 canvas.addEventListener("mouseleave", revertCursorStyle);
@@ -388,4 +408,25 @@ function createCustomEmoji() {
   buttonsToMake.push(custom_emoji_button);
   clearCreatedButtons(app, custom_attribute);
   createButtons(buttonsToMake, app, custom_attribute);
+}
+
+const temporary_canvas_size = 1024;
+
+function exportCanvas() {
+  const temporary_canvas = document.createElement("canvas");
+  temporary_canvas.width = temporary_canvas_size;
+  temporary_canvas.height = temporary_canvas_size;
+
+  const temp_context = temporary_canvas.getContext("2d");
+  if (!temp_context) {
+    throw new Error("Unable to get 2D context");
+  }
+  temp_context.fillStyle = canvas_color;
+  temp_context.scale(4, 4);
+
+  drawLinesOnCanvas(temp_context, temporary_canvas_size);
+  const anchor = document.createElement("a");
+  anchor.href = temporary_canvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
 }
