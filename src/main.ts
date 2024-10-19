@@ -23,6 +23,8 @@ if (!context) {
 const canvas_color = "#34BAEB";
 context.fillStyle = canvas_color;
 context.fillRect(0, 0, canvas_size, canvas_size);
+context.textAlign = "center";
+context.textBaseline = "middle";
 
 let currently_drawing = false;
 
@@ -42,6 +44,7 @@ interface EmojiPlacement {
   x: number;
   y: number;
   emoji: string;
+  rotation: number;
 }
 
 interface DrawingSession {
@@ -178,6 +181,8 @@ interface EmojiPlacement {
   emoji: string;
 }
 
+let cursor_rotation = 0;
+
 function placeEmoji(event: MouseEvent) {
   if (currentTool !== "emoji" || !currentEmoji) return;
 
@@ -187,7 +192,12 @@ function placeEmoji(event: MouseEvent) {
 
   drawing_points.push({
     type: "emoji",
-    data: { x: mouseX, y: mouseY, emoji: currentEmoji },
+    data: {
+      x: mouseX,
+      y: mouseY,
+      emoji: currentEmoji,
+      rotation: cursor_rotation,
+    },
   });
   redo_stack = [];
   triggerDrawingChanged(canvas);
@@ -223,9 +233,7 @@ function drawLinesOnCanvas(
     if (session.type === "line") {
       drawSession(session.data as DrawingSession, context);
     } else if (session.type === "emoji") {
-      const emoji = session.data as EmojiPlacement;
-      context.font = `25px Arial`;
-      context.fillText(emoji.emoji, emoji.x, emoji.y);
+      drawRotatedEmoji(context, session.data as EmojiPlacement);
     }
   }
 
@@ -239,6 +247,21 @@ function drawLinesOnCanvas(
       context
     );
   }
+}
+
+const emoji_font_size = 25;
+
+function drawRotatedEmoji(
+  context: CanvasRenderingContext2D,
+  emojiData: EmojiPlacement
+) {
+  const { emoji, x, y, rotation } = emojiData;
+  context.save();
+  context.font = `${emoji_font_size}px Arial`;
+  context.translate(x, y);
+  context.rotate(rotation);
+  context.fillText(emoji, 0, 0);
+  context.restore();
 }
 
 function drawSession(
@@ -321,10 +344,8 @@ function redoCommand() {
 
 function thicknessChange(value: number) {
   context.lineWidth = value;
-  currentTool = "drawing"; // Reset to drawing mode
-  currentEmoji = null; // Clear current emoji
-
-  // Revert to drawing cursor
+  currentTool = "drawing";
+  currentEmoji = null;
   changeCursorToDot();
   triggerToolMoved();
 }
@@ -333,9 +354,15 @@ function createThicknessChange(value: number): () => void {
   return () => thicknessChange(value);
 }
 
+interface ToolDetail {
+  cursorStyle: string;
+  rotation: number;
+}
+
 const tool_moved = new CustomEvent("tool-moved", {
   detail: {
     cursorStyle: ".",
+    rotation: 0,
   },
 });
 
@@ -344,7 +371,10 @@ function triggerToolMoved() {
 }
 
 function changeToolStyle(event: Event) {
-  const customEvent = event as CustomEvent<{ cursorStyle: string }>;
+  const customEvent = event as CustomEvent<{
+    cursorStyle: string;
+    rotation?: number;
+  }>;
   const styleDetail = customEvent.detail;
 
   canvas.addEventListener("mousemove", (moveEvent) => {
@@ -356,7 +386,20 @@ function changeToolStyle(event: Event) {
     document.body.style.cursor = "none";
     context.font = `25px Arial`;
     context.fillStyle = "black";
-    context.fillText(styleDetail.cursorStyle, mouseX, mouseY);
+    if (
+      styleDetail.cursorStyle.match(emojiRegex) &&
+      styleDetail.rotation !== undefined
+    ) {
+      context.translate(mouseX, mouseY);
+      const radians = styleDetail.rotation * (Math.PI / 180);
+      cursor_rotation = radians;
+      context.rotate(radians);
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(styleDetail.cursorStyle, 0, 0);
+    } else {
+      context.fillText(styleDetail.cursorStyle, mouseX, mouseY);
+    }
     context.restore();
   });
 }
@@ -372,8 +415,10 @@ document.addEventListener("tool-moved", changeToolStyle);
 
 function changeCursorStyle(style: string) {
   tool_moved.detail.cursorStyle = style;
+  tool_moved.detail.rotation = Math.random() * 360;
   currentTool = "emoji";
   currentEmoji = style;
+
   triggerToolMoved();
 }
 
@@ -396,8 +441,9 @@ function clearCreatedButtons(
   buttons.forEach((button) => button.remove());
 }
 
+const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})$/u;
+
 function createCustomEmoji() {
-  const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})$/u;
   let emoji: string | null = null;
   while (!emoji || !emojiRegex.test(emoji)) {
     emoji = prompt("Enter an emoji:");
