@@ -55,6 +55,9 @@ interface ButtonConfig {
   action: () => void;
 }
 
+const thin_width = 1;
+const thick_width = 5;
+
 const buttonsToMake: ButtonConfig[] = [
   {
     name: "export_button",
@@ -79,12 +82,12 @@ const buttonsToMake: ButtonConfig[] = [
   {
     name: "thin_button",
     text: "Thin",
-    action: createThicknessChange(1),
+    action: createThicknessChange(thin_width),
   },
   {
     name: "thick_button",
     text: "Thick",
-    action: createThicknessChange(5),
+    action: createThicknessChange(thick_width),
   },
   {
     name: "emoji1_button",
@@ -399,6 +402,7 @@ function createCustomEmoji() {
   while (!emoji || !emojiRegex.test(emoji)) {
     emoji = prompt("Enter an emoji:");
   }
+  // swap position of newly made button and add custom emoji button
   const custom_emoji_button = buttonsToMake.pop() as ButtonConfig;
   buttonsToMake.push({
     name: "custom_emoji",
@@ -410,23 +414,23 @@ function createCustomEmoji() {
   createButtons(buttonsToMake, app, custom_attribute);
 }
 
-const temporary_canvas_size = 1024;
+const hq_canvas_size = 1024;
 
 function exportCanvas() {
-  const temporary_canvas = document.createElement("canvas");
-  temporary_canvas.width = temporary_canvas_size;
-  temporary_canvas.height = temporary_canvas_size;
+  const hq_canvas = document.createElement("canvas");
+  hq_canvas.width = hq_canvas_size;
+  hq_canvas.height = hq_canvas_size;
 
-  const temp_context = temporary_canvas.getContext("2d");
-  if (!temp_context) {
+  const hq_context = hq_canvas.getContext("2d");
+  if (!hq_context) {
     throw new Error("Unable to get 2D context");
   }
-  temp_context.fillStyle = canvas_color;
-  temp_context.scale(4, 4);
+  hq_context.fillStyle = canvas_color;
+  hq_context.scale(4, 4);
 
-  drawLinesOnCanvas(temp_context, temporary_canvas_size);
+  drawLinesOnCanvas(hq_context, hq_canvas_size);
   const anchor = document.createElement("a");
-  anchor.href = temporary_canvas.toDataURL("image/png");
+  anchor.href = hq_canvas.toDataURL("image/png");
   anchor.download = "sketchpad.png";
   anchor.click();
 }
