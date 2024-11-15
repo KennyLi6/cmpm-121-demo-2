@@ -124,7 +124,7 @@ createButtons(buttonsToMake, app, custom_attribute);
 function createButtons(
   buttonConfigs: ButtonConfig[],
   container: HTMLElement,
-  attribute: string
+  attribute: string,
 ): void {
   for (let i = 0; i < buttonConfigs.length; i++) {
     const button = document.createElement("button");
@@ -147,19 +147,6 @@ function createPoint(x: number, y: number): Point {
       this.y = newY;
     },
   };
-}
-
-function drag(mouse: MouseEvent) {
-  if (currently_drawing) return;
-
-  const canvasBounds = canvas.getBoundingClientRect();
-  const newX = mouse.clientX - canvasBounds.left;
-  const newY = mouse.clientY - canvasBounds.top;
-
-  current_points.pop();
-  current_points.push(createPoint(newX, newY));
-
-  triggerDrawingChanged(canvas);
 }
 
 let drawing_points: DrawingAction[] = [];
@@ -218,14 +205,14 @@ function triggerDrawingChanged(canvas: HTMLCanvasElement) {
 
 function createDrawLinesOnCanvas(
   context: CanvasRenderingContext2D,
-  canvasSize: number
+  canvasSize: number,
 ): () => void {
   return () => drawLinesOnCanvas(context, canvasSize);
 }
 
 function drawLinesOnCanvas(
   context: CanvasRenderingContext2D,
-  canvasSize: number
+  canvasSize: number,
 ) {
   context.fillRect(0, 0, canvasSize, canvasSize);
 
@@ -244,7 +231,7 @@ function drawLinesOnCanvas(
         points: current_points,
         lineWidth: context.lineWidth,
       },
-      context
+      context,
     );
   }
 }
@@ -253,7 +240,7 @@ const emoji_font_size = 25;
 
 function drawRotatedEmoji(
   context: CanvasRenderingContext2D,
-  emojiData: EmojiPlacement
+  emojiData: EmojiPlacement,
 ) {
   const { emoji, x, y, rotation } = emojiData;
   context.save();
@@ -266,7 +253,7 @@ function drawRotatedEmoji(
 
 function drawSession(
   session: DrawingSession,
-  context: CanvasRenderingContext2D
+  context: CanvasRenderingContext2D,
 ) {
   if (session.points.length === 0) return;
 
@@ -298,7 +285,7 @@ function stopDrawing() {
 
 canvas.addEventListener(
   "drawing-changed",
-  createDrawLinesOnCanvas(context, canvas_size)
+  createDrawLinesOnCanvas(context, canvas_size),
 );
 canvas.addEventListener("mousedown", (event) => {
   if (currentTool === "drawing") {
@@ -308,7 +295,7 @@ canvas.addEventListener("mousedown", (event) => {
   }
 });
 canvas.addEventListener("mousemove", (event: MouseEvent) =>
-  drawLine(event, canvas)
+  drawLine(event, canvas),
 );
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseleave", stopDrawing);
@@ -352,11 +339,6 @@ function thicknessChange(value: number) {
 
 function createThicknessChange(value: number): () => void {
   return () => thicknessChange(value);
-}
-
-interface ToolDetail {
-  cursorStyle: string;
-  rotation: number;
 }
 
 const tool_moved = new CustomEvent("tool-moved", {
@@ -433,10 +415,10 @@ function changeCursorToDot() {
 
 function clearCreatedButtons(
   container: HTMLElement,
-  dataAttribute: string
+  dataAttribute: string,
 ): void {
   const buttons = container.querySelectorAll(
-    `button[data-custom-button='${dataAttribute}']`
+    `button[data-custom-button='${dataAttribute}']`,
   );
   buttons.forEach((button) => button.remove());
 }
