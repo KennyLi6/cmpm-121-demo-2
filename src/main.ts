@@ -20,7 +20,7 @@ if (!context) {
   console.error("Context not found!");
 }
 
-const canvas_color = "#34BAEB";
+const canvas_color = "#9DE3F6";
 context.fillStyle = canvas_color;
 context.fillRect(0, 0, canvas_size, canvas_size);
 context.textAlign = "center";
@@ -56,6 +56,7 @@ interface ButtonConfig {
   name: string;
   text: string;
   action: () => void;
+  container: string;
 }
 
 const thin_width = 1;
@@ -66,56 +67,63 @@ const buttonsToMake: ButtonConfig[] = [
     name: "export_button",
     text: "Export",
     action: exportCanvas,
+    container: "#actionButtonContainer"
   },
   {
     name: "clear_button",
     text: "Clear canvas",
     action: clearCanvas,
+    container: "#actionButtonContainer"
   },
   {
     name: "undo_button",
     text: "Undo",
     action: undoCommand,
+    container: "#actionButtonContainer"
   },
   {
     name: "redo_button",
     text: "Redo",
     action: redoCommand,
+    container: "#actionButtonContainer"
   },
   {
     name: "thin_button",
     text: "Thin",
     action: createThicknessChange(thin_width),
+    container: "#drawButtonContainer"
   },
   {
     name: "thick_button",
     text: "Thick",
     action: createThicknessChange(thick_width),
+    container: "#drawButtonContainer"
   },
   {
     name: "emoji1_button",
     text: "🥴",
     action: createCursorChange("🥴"),
+    container: "#emojiButtonContainer"
   },
   {
     name: "emoji2_button",
     text: "🥵",
     action: createCursorChange("🥵"),
+    container: "#emojiButtonContainer"
   },
   {
     name: "emoji3_button",
     text: "🤕",
     action: createCursorChange("🤕"),
+    container: "#emojiButtonContainer"
   },
   {
     name: "custom_emoji_button",
     text: "+",
     action: createCustomEmoji,
+    container: "#emojiButtonContainer"
   },
 ];
-
-// div is only used to get the button to appear under the canvas
-app.append(document.createElement("div"));
 
 const custom_attribute = "custom_button";
 
@@ -131,6 +139,7 @@ function createButtons(
     button.innerHTML = buttonConfigs[i].text;
     button.addEventListener("click", buttonConfigs[i].action);
     button.setAttribute("data-custom-button", attribute);
+    container = document.querySelector<HTMLDivElement>(buttonConfigs[i].container)!;
     container.append(button);
   }
 }
@@ -436,9 +445,12 @@ function createCustomEmoji() {
     name: "custom_emoji",
     text: emoji,
     action: createCursorChange(emoji),
+    container: "#emojiButtonContainer"
   });
   buttonsToMake.push(custom_emoji_button);
-  clearCreatedButtons(app, custom_attribute);
+  clearCreatedButtons(document.querySelector<HTMLDivElement>("#actionButtonContainer")!, custom_attribute);
+  clearCreatedButtons(document.querySelector<HTMLDivElement>("#drawButtonContainer")!, custom_attribute);
+  clearCreatedButtons(document.querySelector<HTMLDivElement>("#emojiButtonContainer")!, custom_attribute);
   createButtons(buttonsToMake, app, custom_attribute);
 }
 

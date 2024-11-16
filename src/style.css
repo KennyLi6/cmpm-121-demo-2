@@ -25,7 +25,9 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -72,6 +74,7 @@ button {
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
+  margin: 0.1em;
 }
 button:hover {
   border-color: #646cff;
@@ -84,17 +87,29 @@ button:focus-visible {
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: #D3F4FB;
   }
   a:hover {
     color: #747bff;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: #7EC8E3;
   }
 }
 
 canvas {
   border: 5px solid black;
   border-radius: 10px;
+}
+
+#actionButtonContainer {
+  padding: 0.5em;
+}
+
+#drawButtonContainer {
+  padding: 0.5em;
+}
+
+#emojiButtonContainer {
+  padding: 0.5em;
 }
